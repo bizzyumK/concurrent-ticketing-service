@@ -11,8 +11,42 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id Int @id @default(autoincrement())
-  email String @unique
-  name String
+model Event {
+  id        String   @id @default(uuid())
+  title     String
+  seats     Seat[]
+  createdAt DateTime @default(now())
+}
+
+model Seat {
+  id               String            @id @default(uuid())
+  seatNumber       String            @unique
+  eventId          String            @unique
+  event            Event             @relation(fields: [eventId], references: [id])
+  createdAt        DateTime          @default(now())
+  reservationSeats ReservationSeat[]
+}
+
+enum ReservationStatus {
+  HELD
+  CONFIRMED
+  EXPIRED
+  CANCELLED
+}
+
+model Reservation {
+  id        String            @id @default(uuid())
+  status    ReservationStatus
+  expiresAt DateTime?
+  seats     ReservationSeat[]
+  createdAt DateTime          @default(now())
+}
+
+model ReservationSeat {
+  reservationId String
+  seatId        String
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+  seat          Seat        @relation(fields: [seatId], references: [id])
+
+  @@id([reservationId, seatId])
 }
