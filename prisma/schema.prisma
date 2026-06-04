@@ -18,15 +18,23 @@ model Event {
   createdAt DateTime @default(now())
 }
 
+//One to Many relation betwen Event and Seat
+//eg: one event can have multiple seats
+//so, attribute 'eventId' in seat is a foreign key of Event table
 model Seat {
   id               String            @id @default(uuid())
-  seatNumber       String            @unique
-  eventId          String            @unique
+  seatNumber       String
+  eventId          String
+  price            Int
+  section          String
   event            Event             @relation(fields: [eventId], references: [id])
   createdAt        DateTime          @default(now())
   reservationSeats ReservationSeat[]
+
+  @@unique([eventId, seatNumber])
 }
 
+//it mean only fixed predefined strings are allowed for applied field
 enum ReservationStatus {
   HELD
   CONFIRMED
@@ -34,6 +42,8 @@ enum ReservationStatus {
   CANCELLED
 }
 
+//a single reservation can contain multiple seats at once
+//so relation between reservation and reservation seat (1 to many)
 model Reservation {
   id        String            @id @default(uuid())
   status    ReservationStatus
@@ -42,6 +52,8 @@ model Reservation {
   createdAt DateTime          @default(now())
 }
 
+// NOTE: auta seat multiple reservation ma huna sakxa 
+// eg: suppose reservation expired then same seat now can be reserved by other user
 model ReservationSeat {
   reservationId String
   seatId        String
