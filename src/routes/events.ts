@@ -3,7 +3,7 @@ import { createEvent, createSeats, getEventById, getEvents, getSeats } from '../
 
 const router = express.Router();
 
-router.post('/events', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
     const { title } = req.body;
     if (!title) {
         return res.status(400).json({ message: "Event title is required" });
@@ -19,7 +19,7 @@ router.post('/events', async (req: Request, res: Response) => {
     }
 });
 
-router.get('/events', async (_: Request, res: Response) => {
+router.get('/', async (_: Request, res: Response) => {
     try {
         const events = await getEvents();
         if (events.length == 0) return res.status(200).json({
@@ -39,7 +39,7 @@ router.get('/events', async (_: Request, res: Response) => {
     }
 });
 
-router.get('/events/:eventId', async (req: Request, res: Response) => {
+router.get('/:eventId', async (req: Request, res: Response) => {
     const eventId = req.params.eventId as string;
     try {
         const event = await getEventById(eventId);
@@ -56,7 +56,7 @@ router.get('/events/:eventId', async (req: Request, res: Response) => {
 });
 
 
-router.post('/events/:eventId/seats', async (req: Request, res: Response) => {
+router.post('/:eventId/seats', async (req: Request, res: Response) => {
     const eventId = req.params.eventId as string;
     const { seatNumbers, price, section } = req.body;
     if (!seatNumbers.length || !price || !section) {
@@ -78,7 +78,7 @@ router.post('/events/:eventId/seats', async (req: Request, res: Response) => {
     }
 });
 
-router.get('/events/:eventId/seats', async (req: Request, res: Response) => {
+router.get('/:eventId/seats', async (req: Request, res: Response) => {
     const eventId = req.params.eventId as string;
     try {
         const seats = await getSeats(eventId);
