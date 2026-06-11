@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { checkReservation } from '../services/reservation.service';
+import { activeReservations, checkSeatAvailability, createReservation } from '../services/reservation.service';
 
 const router = express.Router();
 // Note: Reservation is not a purchase
@@ -14,14 +14,29 @@ router.post('/', async (req: Request, res: Response) => {
         return res.status(400).json({ message: "EventId and SeatNumbers are required" });
     }
     try {
-        const seats = await checkReservation(eventId, seatNumbers);
+        const seats = await checkSeatAvailability(eventId, seatNumbers);
+        //converting the seatNumbers into it's respective ids for better db communication
+        const seatIds: string[] = [];
+        seats.map((seat) => {
+            seatIds.push(seat.id);
+        })
+        const activeSeat = await activeReservations(seatIds);
+        //checks if the seats are active/reserved or not
+        if (activeSeat.length > 0) {
+            return res.status(409).json({
+                message: "One or more seats are already reserved"
+            });
+        }
+
+        const reservation = await createReservation(seatIds);
+
         return res.status(200).json({
-            message: "Seats are available",
-            seats
+            message: "Reservation Successful",
+            reservation
         });
     } catch (err: any) {
         return res.status(500).json({
-            message: `Internal server error, ${err.message}`
+            message: `${err.message}`
         });
     }
 });

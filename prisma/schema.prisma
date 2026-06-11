@@ -31,6 +31,9 @@ model Seat {
   createdAt        DateTime          @default(now())
   reservationSeats ReservationSeat[]
 
+  //it means for a particular event, seat number should be unique 
+  //eg: for event A: a1 cannot be repeated like [a1, a1, a2, a3]
+  // but for event B: a1 can exist because it is different event
   @@unique([eventId, seatNumber])
 }
 
@@ -60,5 +63,6 @@ model ReservationSeat {
   reservation   Reservation @relation(fields: [reservationId], references: [id])
   seat          Seat        @relation(fields: [seatId], references: [id])
 
+  //this is a composite primary key which is combination of reservationId and seatId
   @@id([reservationId, seatId])
 }
