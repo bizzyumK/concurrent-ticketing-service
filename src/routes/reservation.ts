@@ -20,6 +20,10 @@ router.post('/', async (req: Request, res: Response) => {
         seats.map((seat) => {
             seatIds.push(seat.id);
         })
+
+        //This line was added to check the concurrency bug
+        await new Promise(res => setTimeout(res, 3000));
+
         const activeSeat = await activeReservations(seatIds);
         //checks if the seats are active/reserved or not
         if (activeSeat.length > 0) {
