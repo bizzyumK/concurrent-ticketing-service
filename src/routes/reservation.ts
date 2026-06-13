@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
-import { activeReservations, checkSeatAvailability, createReservation } from '../services/reservation.service';
+// import { activeReservations, checkSeatAvailability, createReservation, reserveSeats } from '../services/reservation.service';
+import { reserveSeats } from '../services/reservation.service';
 
 const router = express.Router();
 // Note: Reservation is not a purchase
@@ -8,41 +9,51 @@ const router = express.Router();
 // * user A and user B reserve the same ticket
 // * now who will held the ticket? 
 
-router.post('/', async (req: Request, res: Response) => {
+// router.post('/', async (req: Request, res: Response) => {
+//     const { eventId, seatNumbers } = req.body;
+//     if (!eventId || !seatNumbers) {
+//         return res.status(400).json({ message: "EventId and SeatNumbers are required" });
+//     }
+//     try {
+//         const seats = await checkSeatAvailability(eventId, seatNumbers);
+//         //converting the seatNumbers into it's respective ids for better db communication
+//         const seatIds: string[] = [];
+//         seats.map((seat) => {
+//             seatIds.push(seat.id);
+//         })
+
+//         //This line was added to check the concurrency bug
+//         // await new Promise(res => setTimeout(res, 3000));
+
+//         const activeSeat = await activeReservations(seatIds);
+//         //checks if the seats are active/reserved or not
+//         if (activeSeat.length > 0) {
+//             return res.status(409).json({
+//                 message: "One or more seats are already reserved"
+//             });
+//         }
+
+//         const reservation = await createReservation(seatIds);
+
+//         return res.status(200).json({
+//             message: "Reservation Successful",
+//             reservation
+//         });
+//     } catch (err: any) {
+//         return res.status(500).json({
+//             message: `${err.message}`
+//         });
+//     }
+// });
+
+router.post("/", async (req, res) => {
     const { eventId, seatNumbers } = req.body;
-    if (!eventId || !seatNumbers) {
-        return res.status(400).json({ message: "EventId and SeatNumbers are required" });
-    }
-    try {
-        const seats = await checkSeatAvailability(eventId, seatNumbers);
-        //converting the seatNumbers into it's respective ids for better db communication
-        const seatIds: string[] = [];
-        seats.map((seat) => {
-            seatIds.push(seat.id);
-        })
+    const reservation = await reserveSeats(
+        eventId,
+        seatNumbers
+    );
 
-        //This line was added to check the concurrency bug
-        await new Promise(res => setTimeout(res, 3000));
-
-        const activeSeat = await activeReservations(seatIds);
-        //checks if the seats are active/reserved or not
-        if (activeSeat.length > 0) {
-            return res.status(409).json({
-                message: "One or more seats are already reserved"
-            });
-        }
-
-        const reservation = await createReservation(seatIds);
-
-        return res.status(200).json({
-            message: "Reservation Successful",
-            reservation
-        });
-    } catch (err: any) {
-        return res.status(500).json({
-            message: `${err.message}`
-        });
-    }
+    return res.status(200).json(reservation);
 });
 
 export default router;
