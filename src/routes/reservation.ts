@@ -48,12 +48,20 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     const { eventId, seatNumbers } = req.body;
-    const reservation = await reserveSeats(
-        eventId,
-        seatNumbers
-    );
+    try {
+        const reservation = await reserveSeats(eventId, seatNumbers);
+        return res.status(200).json(reservation);
+    } catch (err: any) {
+        if (err.message === "Already reserved") {
+            return res.status(409).json({
+                message: err.message
+            });
+        }
 
-    return res.status(200).json(reservation);
+        return res.status(500).json({
+            message: err.message
+        });
+    }
 });
 
 export default router;
