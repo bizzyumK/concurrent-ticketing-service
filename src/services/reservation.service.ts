@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 
 // export async function checkSeatAvailability(eventId: string, seatNumbers: string[]) {
@@ -73,6 +74,14 @@ import { prisma } from "../lib/prisma";
 //     return reservation;
 // }
 
+interface LockedSeat {
+    id: string,
+    seatNumber: string,
+    eventId: string,
+    price: number,
+    section: string,
+    createdAt: Date
+}
 // TRANSATION ARE GROUP OF DB OPERATION THAT ARE TREATED AS A SINGLE UNIT OR WORK.
 // Eg:
 // BEGIN
@@ -103,14 +112,25 @@ export async function reserveSeats(eventId: string, seatNumbers: string[]) {
         // Example:
         // eventId = E1
         // seatNumbers = ["A1", "A2"]
-        const seats = await tx.seat.findMany({
-            where: {
-                eventId,
-                seatNumber: {
-                    in: seatNumbers
-                }
-            }
-        });
+        // const seats = await tx.seat.findMany({
+        //     where: {
+        //         eventId,
+        //         seatNumber: {
+        //             in: seatNumbers
+        //         }
+        //     }
+        // });
+
+        //locking the seat row
+        //locking flow is shown in reservation.md
+        const seats = await tx.$queryRaw<LockedSeat[]> `
+        SELECT * 
+        FROM "Seat"
+        WHERE "eventId" = ${eventId}
+        AND "seatNumber" IN (${Prisma.join(seatNumbers)})
+        FOR UPDATE
+        `;
+
         if (seats.length === 0) {
             throw new Error("Seats not available");
         } else if (seats.length != seatNumbers.length) {
@@ -163,8 +183,11 @@ export async function reserveSeats(eventId: string, seatNumbers: string[]) {
         // If execution reaches here, every query succeeded.
         // Prisma will COMMIT the transaction automatically.
 
-        //NOTE: transaction will only solve the ATOMICITY, whilte concurrency can still happend
-        //so we need to use locking system for handling concurrecny
+        // A transaction guarantees that all database operations
+        // succeed together or fail together (atomicity).
+        // To prevent two users from reserving the same seat at
+        // the same time, we additionally lock the seat rows
+        // using SELECT ... FOR UPDATE.
         return reservation;
     });
 }
