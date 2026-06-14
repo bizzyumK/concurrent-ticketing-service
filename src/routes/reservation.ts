@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 // import { activeReservations, checkSeatAvailability, createReservation, reserveSeats } from '../services/reservation.service';
-import { reserveSeats } from '../services/reservation.service';
+import { confirmReservation, reserveSeats } from '../services/reservation.service';
 
 const router = express.Router();
 // Note: Reservation is not a purchase
@@ -46,7 +46,7 @@ const router = express.Router();
 //     }
 // });
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: Request, res: Response) => {
     const { eventId, seatNumbers } = req.body;
     try {
         const reservation = await reserveSeats(eventId, seatNumbers);
@@ -62,6 +62,26 @@ router.post("/", async (req, res) => {
             message: err.message
         });
     }
+});
+
+router.post('/:reservationId/confirm', async (req: Request, res: Response) => {
+    const reservationId = req.params.reservationId as string;
+    try {
+        const response = await confirmReservation(reservationId);
+        return res.status(200).json({
+            message: "Payment Confirmed",
+            response
+        });
+    } catch (err: any) {
+        if (err.message === "Reservation not found") {
+            return res.status(404).json({ message: err.message });
+        }
+
+        return res.status(400).json({
+            message: err.message
+        });
+    }
+
 });
 
 export default router;

@@ -212,3 +212,38 @@ export async function reserveSeats(eventId: string, seatNumbers: string[]) {
     console.log("Job added:", job.id);
     return reservation;
 }
+
+export async function confirmReservation(reservationId: string) {
+    if (!reservationId) {
+        throw new Error("ReservationId not provided");
+    }
+    const reservation = await prisma.reservation.findUnique({
+        where: {
+            id: reservationId
+        }
+    });
+    if (!reservation) {
+        throw new Error("Reservation not found");
+    }
+    if (reservation.status == "HELD") {
+        return prisma.reservation.update({
+            where: {
+                id: reservationId
+            },
+            data: {
+                status: 'CONFIRMED'
+            }
+        });
+    }
+    if (reservation.status === "CONFIRMED") {
+        throw new Error("Reservation already confirmed");
+    }
+
+    if (reservation.status === "EXPIRED") {
+        throw new Error("Reservation expired");
+    }
+
+    if (reservation.status === "CANCELLED") {
+        throw new Error("Reservation cancelled");
+    }
+}
