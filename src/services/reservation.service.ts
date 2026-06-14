@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
+import { reservationQueue } from "../queue/reservation.queue";
 
 // export async function checkSeatAvailability(eventId: string, seatNumbers: string[]) {
 //     //checking if the event exist or not
@@ -96,7 +97,7 @@ interface LockedSeat {
 //why did i use transaction here?
 //--> because reservtion contain multiple query operation so if one fails everything else should fail
 export async function reserveSeats(eventId: string, seatNumbers: string[]) {
-    return await prisma.$transaction(async (tx) => {
+    const reservation = await prisma.$transaction(async (tx: any) => {
         // Step 1: Check whether the event exists.
         // No point reserving seats for an event that doesn't exist.
         const event = await tx.event.findUnique({
@@ -139,7 +140,7 @@ export async function reserveSeats(eventId: string, seatNumbers: string[]) {
 
         // Convert Seat objects into seat IDs.
         // ReservationSeat table stores seatId instead of seatNumber.
-        const seatIds = seats.map(seat => seat.id);
+        const seatIds = seats.map((seat: any) => seat.id);
 
         // Step 3: Check whether any requested seat already belongs
         // to an active reservation (HELD or CONFIRMED).
@@ -170,11 +171,10 @@ export async function reserveSeats(eventId: string, seatNumbers: string[]) {
                 expiresAt: new Date(Date.now() + 5 * 60 * 1000)
             }
         });
-
         // Step 5: Link every selected seat to this reservation
         // through the ReservationSeat join table.
         await tx.reservationSeat.createMany({
-            data: seatIds.map(id => ({
+            data: seatIds.map((id: any) => ({
                 reservationId: reservation.id,
                 seatId: id
             }))
@@ -190,4 +190,25 @@ export async function reserveSeats(eventId: string, seatNumbers: string[]) {
         // using SELECT ... FOR UPDATE.
         return reservation;
     });
+    //adding BULLMQ expiration
+    //what bullmq does is:
+    // 1. stores job 
+    // 2. schedule job(delay, retires)
+    // 3. deliver job to worker safely
+    // NOTE: uses redis to store job data, deplaly job, retries etc
+
+    //this is a producer
+    //this tells redis to wake me up after delay time -> job is added to redis
+    //it will wakeup(active) the worker for further process after delay time along with job data
+    const job = await reservationQueue.add(
+        "expire-reservation", //job name
+        {
+            reservationId: reservation.id//jobs data
+        },
+        {
+            delay: 5 * 60 * 1000//5min delay
+        }
+    );
+    console.log("Job added:", job.id);
+    return reservation;
 }
