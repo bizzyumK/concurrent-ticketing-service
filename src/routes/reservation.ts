@@ -1,6 +1,6 @@
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 // import { activeReservations, checkSeatAvailability, createReservation, reserveSeats } from '../services/reservation.service';
-import { confirmReservation, reserveSeats } from '../services/reservation.service';
+import { cancelReservation, confirmReservation, reserveSeats } from '../services/reservation.service';
 
 const router = express.Router();
 // Note: Reservation is not a purchase
@@ -46,25 +46,17 @@ const router = express.Router();
 //     }
 // });
 
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", async (req: Request, res: Response, next: NextFunction) => {
     const { eventId, seatNumbers } = req.body;
     try {
         const reservation = await reserveSeats(eventId, seatNumbers);
         return res.status(200).json(reservation);
     } catch (err: any) {
-        if (err.message === "Already reserved") {
-            return res.status(409).json({
-                message: err.message
-            });
-        }
-
-        return res.status(500).json({
-            message: err.message
-        });
+        next(err);
     }
 });
 
-router.post('/:reservationId/confirm', async (req: Request, res: Response) => {
+router.post('/:reservationId/confirm', async (req: Request, res: Response, next: NextFunction) => {
     const reservationId = req.params.reservationId as string;
     try {
         const response = await confirmReservation(reservationId);
@@ -73,15 +65,22 @@ router.post('/:reservationId/confirm', async (req: Request, res: Response) => {
             response
         });
     } catch (err: any) {
-        if (err.message === "Reservation not found") {
-            return res.status(404).json({ message: err.message });
-        }
-
-        return res.status(400).json({
-            message: err.message
-        });
+        next(err);
     }
 
 });
+
+router.post('/:reservationId/cancel', async (req: Request, res: Response, next: NextFunction) => {
+    const reservationId = req.params.reservationId as string;
+    try {
+        const response = await cancelReservation(reservationId);
+        return res.status(200).json({
+            message: "Payment Cancelled successfully",
+            response
+        });
+    } catch (err: any) {
+        next(err);
+    }
+})
 
 export default router;

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { reservationQueue } from "../queue/reservation.queue";
+import { createError } from "../lib/error";
 
 // export async function checkSeatAvailability(eventId: string, seatNumbers: string[]) {
 //     //checking if the event exist or not
@@ -106,7 +107,7 @@ export async function reserveSeats(eventId: string, seatNumbers: string[]) {
             }
         });
         if (!event) {
-            throw new Error("Event not found");
+            throw createError("Event not found", 404);
         }
 
         // Step 2: Fetch all requested seats that belong to this event.
@@ -133,9 +134,9 @@ export async function reserveSeats(eventId: string, seatNumbers: string[]) {
         `;
 
         if (seats.length === 0) {
-            throw new Error("Seats not available");
+            throw createError("Seats not available", 404);
         } else if (seats.length != seatNumbers.length) {
-            throw new Error("One or More seats do not exist");
+            throw createError("One or more seats do not exist", 400);
         }
 
         // Convert Seat objects into seat IDs.
@@ -160,7 +161,7 @@ export async function reserveSeats(eventId: string, seatNumbers: string[]) {
         // If at least one seat is already reserved,
         // reject the request.
         if (active.length > 0) {
-            throw new Error("Already reserved");
+            throw createError("Already reserved", 409);
         }
 
         // Step 4: Create a new reservation with HELD status.
@@ -215,7 +216,7 @@ export async function reserveSeats(eventId: string, seatNumbers: string[]) {
 
 export async function confirmReservation(reservationId: string) {
     if (!reservationId) {
-        throw new Error("ReservationId not provided");
+        throw createError("ReservationId not provided", 400);
     }
     const reservation = await prisma.reservation.findUnique({
         where: {
@@ -223,7 +224,7 @@ export async function confirmReservation(reservationId: string) {
         }
     });
     if (!reservation) {
-        throw new Error("Reservation not found");
+        throw createError("Reservation not found", 404);
     }
     if (reservation.status == "HELD") {
         return prisma.reservation.update({
@@ -235,15 +236,48 @@ export async function confirmReservation(reservationId: string) {
             }
         });
     }
+    if (reservation.status === "CONFIRMED")
+        throw createError("Reservation already confirmed", 409);
+
+    if (reservation.status === "EXPIRED")
+        throw createError("Reservation expired", 410);
+
+    if (reservation.status === "CANCELLED")
+        throw createError("Reservation already cancelled", 409);
+}
+
+export async function cancelReservation(reservationId: string) {
+    if (!reservationId) {
+        throw createError("ReservationId not provided", 400);
+    }
+    const reservation = await prisma.reservation.findUnique({
+        where: {
+            id: reservationId
+        }
+    });
+    if (!reservation) {
+        throw createError("Reservation not found", 400);
+    }
+    if (reservation.status == "HELD") {
+        return prisma.reservation.update({
+            where: {
+                id: reservationId
+            },
+            data: {
+                status: 'CANCELLED'
+            }
+        });
+    }
     if (reservation.status === "CONFIRMED") {
-        throw new Error("Reservation already confirmed");
+        throw createError("Reservation already confirmed", 409);
     }
 
     if (reservation.status === "EXPIRED") {
-        throw new Error("Reservation expired");
+        throw createError("Reservation expired", 409);
     }
 
     if (reservation.status === "CANCELLED") {
-        throw new Error("Reservation cancelled");
+        throw createError("Reservation already cancelled", 409);
     }
+
 }

@@ -3,12 +3,15 @@ dotenv.config();
 import express from 'express';
 import eventRoutes from './routes/events';
 import reservationRoutes from './routes/reservation';
+import { errorMiddleware } from './middleware/error.middleware';
 
 const app = express();
 
 app.use(express.json());
 app.use('/api/events', eventRoutes);
 app.use('/api/reservations', reservationRoutes);
+//Global Middlware -> must be last
+app.use(errorMiddleware);
 
 const PORT = process.env.PORT || 5004;
 app.listen(PORT, () => {
