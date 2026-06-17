@@ -1,6 +1,7 @@
 import express, { NextFunction, Request, Response } from 'express';
 // import { activeReservations, checkSeatAvailability, createReservation, reserveSeats } from '../services/reservation.service';
 import { cancelReservation, confirmReservation, reserveSeats } from '../services/reservation.service';
+import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = express.Router();
 // Note: Reservation is not a purchase
@@ -46,17 +47,17 @@ const router = express.Router();
 //     }
 // });
 
-router.post("/", async (req: Request, res: Response, next: NextFunction) => {
+router.post("/", authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     const { eventId, seatNumbers } = req.body;
     try {
-        const reservation = await reserveSeats(eventId, seatNumbers);
+        const reservation = await reserveSeats(eventId, seatNumbers, req.user.id);
         return res.status(200).json(reservation);
     } catch (err: any) {
         next(err);
     }
 });
 
-router.post('/:reservationId/confirm', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/:reservationId/confirm', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     const reservationId = req.params.reservationId as string;
     try {
         const response = await confirmReservation(reservationId);
@@ -70,7 +71,7 @@ router.post('/:reservationId/confirm', async (req: Request, res: Response, next:
 
 });
 
-router.post('/:reservationId/cancel', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/:reservationId/cancel', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     const reservationId = req.params.reservationId as string;
     try {
         const response = await cancelReservation(reservationId);

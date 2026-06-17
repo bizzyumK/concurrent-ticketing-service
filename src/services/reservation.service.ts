@@ -97,7 +97,7 @@ interface LockedSeat {
 
 //why did i use transaction here?
 //--> because reservtion contain multiple query operation so if one fails everything else should fail
-export async function reserveSeats(eventId: string, seatNumbers: string[]) {
+export async function reserveSeats(eventId: string, seatNumbers: string[], userId: string) {
     const reservation = await prisma.$transaction(async (tx: any) => {
         // Step 1: Check whether the event exists.
         // No point reserving seats for an event that doesn't exist.
@@ -169,7 +169,8 @@ export async function reserveSeats(eventId: string, seatNumbers: string[]) {
         const reservation = await tx.reservation.create({
             data: {
                 status: "HELD",
-                expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+                expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+                userId
             }
         });
         // Step 5: Link every selected seat to this reservation
