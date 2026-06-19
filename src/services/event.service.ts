@@ -54,3 +54,31 @@ export function getSeats(eventId: string) {
         }
     });
 }
+
+//the seats that are not held, confirm
+export async function availableSeats(eventId: string) {
+    const seats = await prisma.seat.findMany({
+        where: {
+            eventId
+        },
+        include: {
+            reservationSeats: {
+                include: {
+                    reservation: true
+                }
+            }
+        }
+    });
+    const availableSeats = seats.map((seat) => {
+        const active = seat.reservationSeats.some((rs) => {
+            return rs.reservation.status == "HELD" || rs.reservation.status == "CONFIRMED"
+        });
+        return {
+            seatNumber: seat.seatNumber,
+            section: seat.section,
+            price: seat.price,
+            available: !active
+        };
+    });
+    return availableSeats;
+}

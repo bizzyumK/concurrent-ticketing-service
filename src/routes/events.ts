@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { createEvent, createSeats, getEventById, getEvents, getSeats } from '../services/event.service';
+import { availableSeats, createEvent, createSeats, getEventById, getEvents, getSeats } from '../services/event.service';
 import checkAdmin, { authMiddleware } from '../middleware/auth.middleware';
 
 const router = express.Router();
@@ -83,6 +83,22 @@ router.get('/:eventId/seats', async (req: Request, res: Response) => {
     const eventId = req.params.eventId as string;
     try {
         const seats = await getSeats(eventId);
+        return res.status(200).json({
+            message: "seats fetched successfully",
+            seats
+        });
+    } catch (err: any) {
+        console.error("Cannot fetch the events:", err.message);
+        return res.status(500).json({
+            message: "Internal server error"
+        });
+    }
+});
+
+router.get('/available/:eventId/seats', async (req: Request, res: Response) => {
+    const eventId = req.params.eventId as string;
+    try {
+        const seats = await availableSeats(eventId);
         return res.status(200).json({
             message: "seats fetched successfully",
             seats
