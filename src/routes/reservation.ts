@@ -60,7 +60,7 @@ router.post("/", authMiddleware, async (req: Request, res: Response, next: NextF
 router.post('/:reservationId/confirm', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     const reservationId = req.params.reservationId as string;
     try {
-        const response = await confirmReservation(reservationId);
+        const response = await confirmReservation(reservationId, req.user?.id);
         return res.status(200).json({
             message: "Payment Confirmed",
             response
@@ -74,7 +74,7 @@ router.post('/:reservationId/confirm', authMiddleware, async (req: Request, res:
 router.post('/:reservationId/cancel', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     const reservationId = req.params.reservationId as string;
     try {
-        const response = await cancelReservation(reservationId);
+        const response = await cancelReservation(reservationId, req.user?.id);
         return res.status(200).json({
             message: "Payment Cancelled successfully",
             response

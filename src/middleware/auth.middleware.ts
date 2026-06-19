@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../lib/jwt";
 import { prisma } from "../lib/prisma";
 
-export async function authMiddleware(req: any, res: Response, next: NextFunction) {
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
     try {
         const header = req.headers.authorization;
 
@@ -26,5 +26,14 @@ export async function authMiddleware(req: any, res: Response, next: NextFunction
         next();
     } catch (err) {
         return res.status(401).json({ message: "Invalid token" });
+    }
+}
+
+export default function checkAdmin(req: Request, res: Response, next: NextFunction) {
+    const user = req.user;
+    if (user.role === "ADMIN") {
+        next();
+    } else {
+        return res.status(403).json({ message: "Sorry buddy you are not ADMIN" });
     }
 }

@@ -215,15 +215,18 @@ export async function reserveSeats(eventId: string, seatNumbers: string[], userI
     return reservation;
 }
 
-export async function confirmReservation(reservationId: string) {
+export async function confirmReservation(reservationId: string, userId: string) {
     if (!reservationId) {
         throw createError("ReservationId not provided", 400);
     }
     const reservation = await prisma.reservation.findUnique({
         where: {
-            id: reservationId
+            id: reservationId,
         }
     });
+    if (reservation?.userId != userId)
+        throw createError("Reservation Does not belong to you", 403);
+
     if (!reservation) {
         throw createError("Reservation not found", 404);
     }
@@ -247,7 +250,7 @@ export async function confirmReservation(reservationId: string) {
         throw createError("Reservation already cancelled", 409);
 }
 
-export async function cancelReservation(reservationId: string) {
+export async function cancelReservation(reservationId: string, userId: string) {
     if (!reservationId) {
         throw createError("ReservationId not provided", 400);
     }
@@ -259,6 +262,10 @@ export async function cancelReservation(reservationId: string) {
     if (!reservation) {
         throw createError("Reservation not found", 400);
     }
+
+    if (reservation?.userId != userId)
+        throw createError("Cancel Failed!!!, Reservation Does not belong to you", 403);
+
     if (reservation.status == "HELD") {
         return prisma.reservation.update({
             where: {

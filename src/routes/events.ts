@@ -1,10 +1,10 @@
 import express, { Request, Response } from 'express';
 import { createEvent, createSeats, getEventById, getEvents, getSeats } from '../services/event.service';
-import { authMiddleware } from '../middleware/auth.middleware';
+import checkAdmin, { authMiddleware } from '../middleware/auth.middleware';
 
 const router = express.Router();
 
-router.post('/', authMiddleware, async (req: Request, res: Response) => {
+router.post('/', authMiddleware, checkAdmin, async (req: Request, res: Response) => {
     const { title } = req.body;
     if (!title) {
         return res.status(400).json({ message: "Event title is required" });
@@ -57,7 +57,7 @@ router.get('/:eventId', async (req: Request, res: Response) => {
 });
 
 
-router.post('/:eventId/seats', authMiddleware, async (req: Request, res: Response) => {
+router.post('/:eventId/seats', authMiddleware, checkAdmin, async (req: Request, res: Response) => {
     const eventId = req.params.eventId as string;
     const { seatNumbers, price, section } = req.body;
     if (!seatNumbers.length || !price || !section) {
