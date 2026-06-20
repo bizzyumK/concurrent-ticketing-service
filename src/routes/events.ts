@@ -24,12 +24,13 @@ router.get('/', async (_: Request, res: Response) => {
     try {
         const events = await getEvents();
         if (events.length == 0) return res.status(200).json({
-            message: "Events fetched successfully",
+            message: "No Events at a moment",
             data: events
         });
 
         return res.status(200).json({
             message: "Events fetch Success",
+            totalEvent: events.length,
             data: events
         });
     } catch (err: any) {
@@ -55,7 +56,6 @@ router.get('/:eventId', async (req: Request, res: Response) => {
         });
     }
 });
-
 
 router.post('/:eventId/seats', authMiddleware, checkAdmin, async (req: Request, res: Response) => {
     const eventId = req.params.eventId as string;

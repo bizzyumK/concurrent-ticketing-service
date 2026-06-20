@@ -1,10 +1,13 @@
 import { prisma } from "../lib/prisma";
 import { redis } from '../lib/redis';
 
-export function createEvent(title: string) {
-    return prisma.event.create({
+export async function createEvent(title: string) {
+    const newEvent = prisma.event.create({
         data: { title }
     });
+    //if not in cached then (del) will simply return 0 and nothing will happen so error handling is strictly not required
+    await redis.del('events');//this is called redis invalidation
+    return newEvent;
 }
 
 export async function getEvents() {
@@ -57,9 +60,11 @@ export async function createSeats(eventId: string, seatNumber: string[], price: 
         }
     })
     //create the data in database
-    return prisma.seat.createMany({
+    const newSeats = prisma.seat.createMany({
         data: seats
     });
+    await redis.del('seats');
+    return newSeats;
 };
 
 export async function getSeats(eventId: string) {
