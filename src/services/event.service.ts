@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma";
+import { redis } from '../lib/redis';
 
 export function createEvent(title: string) {
     return prisma.event.create({
@@ -6,16 +7,33 @@ export function createEvent(title: string) {
     });
 }
 
-export function getEvents() {
-    return prisma.event.findMany();
+export async function getEvents() {
+    const cached = await redis.get("events");
+    if (cached) {
+        console.log("Cached Hit");
+        return JSON.parse(cached);
+    }
+    //if missed then set data to redis
+    console.log("Cached missed");
+    const events = await prisma.event.findMany();
+    await redis.set("events", JSON.stringify(events), "EX", 60);//here EX 60 is a ttl timu
+    return events;
 }
 
-export function getEventById(eventId: string) {
-    return prisma.event.findUnique({
+export async function getEventById(eventId: string) {
+    const cached = await redis.get("singleEvent");
+    if (cached) {
+        console.log("Cached Hit");
+        return JSON.parse(cached);
+    }
+    console.log("Cached missed");
+    const event = await prisma.event.findUnique({
         where: {
             id: eventId
         }
     });
+    await redis.set('singleEvent', JSON.stringify(event), "EX", 60);
+    return event;
 }
 
 export async function createSeats(eventId: string, seatNumber: string[], price: number, section: string) {
@@ -44,8 +62,14 @@ export async function createSeats(eventId: string, seatNumber: string[], price: 
     });
 };
 
-export function getSeats(eventId: string) {
-    return prisma.seat.findMany({
+export async function getSeats(eventId: string) {
+    const cached = await redis.get("seats");
+    if (cached) {
+        console.log("Cached Hit");
+        return JSON.parse(cached); //convert string into json
+    }
+    console.log("Cached missed");
+    const seats = await prisma.seat.findMany({
         where: {
             eventId: eventId,
         },
@@ -53,10 +77,18 @@ export function getSeats(eventId: string) {
             event: true
         }
     });
+    await redis.set('seats', JSON.stringify(seats), "EX", 60);
+    return seats;
 }
 
 //the seats that are not held, confirm
 export async function availableSeats(eventId: string) {
+    const cached = await redis.get("availableSeats");
+    if (cached) {
+        console.log("Cached Hit");
+        return JSON.parse(cached);
+    }
+    console.log("Cached missed");
     const seats = await prisma.seat.findMany({
         where: {
             eventId
@@ -80,5 +112,6 @@ export async function availableSeats(eventId: string) {
             available: !active
         };
     });
+    await redis.set('availableSeats', JSON.stringify(availableSeats), 'EX', 60);
     return availableSeats;
 }
