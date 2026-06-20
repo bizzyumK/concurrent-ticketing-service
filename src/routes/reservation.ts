@@ -2,6 +2,7 @@ import express, { NextFunction, Request, Response } from 'express';
 // import { activeReservations, checkSeatAvailability, createReservation, reserveSeats } from '../services/reservation.service';
 import { cancelReservation, confirmReservation, reserveSeats } from '../services/reservation.service';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { confirmLimiter, reservationLimiter } from '../middleware/rate-limiter';
 
 const router = express.Router();
 // Note: Reservation is not a purchase
@@ -47,7 +48,7 @@ const router = express.Router();
 //     }
 // });
 
-router.post("/", authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/", authMiddleware, reservationLimiter, async (req: Request, res: Response, next: NextFunction) => {
     const { eventId, seatNumbers } = req.body;
     try {
         const reservation = await reserveSeats(eventId, seatNumbers, req.user.id);
@@ -57,7 +58,7 @@ router.post("/", authMiddleware, async (req: Request, res: Response, next: NextF
     }
 });
 
-router.post('/:reservationId/confirm', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+router.post('/:reservationId/confirm', authMiddleware, confirmLimiter, async (req: Request, res: Response, next: NextFunction) => {
     const reservationId = req.params.reservationId as string;
     try {
         const response = await confirmReservation(reservationId, req.user?.id);
