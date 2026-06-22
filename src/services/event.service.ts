@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+import { createError } from "../lib/error";
 import { prisma } from "../lib/prisma";
 import { redis } from '../lib/redis';
 
@@ -46,7 +48,7 @@ export async function createSeats(eventId: string, seatNumber: string[], price: 
         }
     });
     if (!event) {
-        throw new Error("Event not found");
+        throw createError("Event not found", 404);
     }
     //Set the bulk of data at once
     //because user will send it in an array form
@@ -60,12 +62,25 @@ export async function createSeats(eventId: string, seatNumber: string[], price: 
         }
     })
     //create the data in database
-    const newSeats = prisma.seat.createMany({
-        data: seats
-    });
-    await redis.del('seats');
-    return newSeats;
-};
+    try {
+        const newSeats = await prisma.seat.createMany({
+            data: seats
+        });
+        await redis.del("seats");
+        return newSeats;
+    } catch (err) {
+        if (
+            err instanceof Prisma.PrismaClientKnownRequestError &&
+            err.code === "P2002"
+        ) {
+            throw createError(
+                "One or more seat numbers already exist for this event",
+                409
+            );
+        }
+        throw err;
+    };
+}
 
 export async function getSeats(eventId: string) {
     const cached = await redis.get("seats");

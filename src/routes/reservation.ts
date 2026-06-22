@@ -3,6 +3,7 @@ import express, { NextFunction, Request, Response } from 'express';
 import { cancelReservation, confirmReservation, reserveSeats } from '../services/reservation.service';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { confirmLimiter, reservationLimiter } from '../middleware/rate-limiter';
+import { logger } from '../lib/logger';
 
 const router = express.Router();
 // Note: Reservation is not a purchase
@@ -52,6 +53,11 @@ router.post("/", authMiddleware, reservationLimiter, async (req: Request, res: R
     const { eventId, seatNumbers } = req.body;
     try {
         const reservation = await reserveSeats(eventId, seatNumbers, req.user.id);
+        logger.info({
+            eventId: eventId,
+            seatNumbers: seatNumbers,
+            reservation
+        });
         return res.status(200).json(reservation);
     } catch (err: any) {
         next(err);
@@ -62,6 +68,10 @@ router.post('/:reservationId/confirm', authMiddleware, confirmLimiter, async (re
     const reservationId = req.params.reservationId as string;
     try {
         const response = await confirmReservation(reservationId, req.user?.id);
+        logger.info({
+            reservationId,
+            response
+        });
         return res.status(200).json({
             message: "Payment Confirmed",
             response
@@ -76,6 +86,10 @@ router.post('/:reservationId/cancel', authMiddleware, async (req: Request, res: 
     const reservationId = req.params.reservationId as string;
     try {
         const response = await cancelReservation(reservationId, req.user?.id);
+        logger.info({
+            reservationId,
+            response
+        });
         return res.status(200).json({
             message: "Payment Cancelled successfully",
             response

@@ -1,6 +1,7 @@
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import { availableSeats, createEvent, createSeats, getEventById, getEvents, getSeats } from '../services/event.service';
 import checkAdmin, { authMiddleware } from '../middleware/auth.middleware';
+import { logger } from '../lib/logger';
 
 const router = express.Router();
 
@@ -11,9 +12,13 @@ router.post('/', authMiddleware, checkAdmin, async (req: Request, res: Response)
     }
     try {
         const event = await createEvent(title);
+        logger.info({
+            eventId: event.id,
+            eventTitle: event.title
+        }, "Event Created");
         return res.status(201).json(event);
     } catch (err: any) {
-        console.error("Error while creating event:", err.message);
+        logger.error(err, "Failed to create event");
         return res.status(500).json({
             message: "Internal server error"
         });
@@ -50,32 +55,33 @@ router.get('/:eventId', async (req: Request, res: Response) => {
             data: event
         });
     } catch (err: any) {
-        console.error("Cannot fetch the events:", err.message);
+        console.error("Cannot fetch the event:", err.message);
         return res.status(500).json({
             message: "Internal server error"
         });
     }
 });
 
-router.post('/:eventId/seats', authMiddleware, checkAdmin, async (req: Request, res: Response) => {
+router.post('/:eventId/seats', authMiddleware, checkAdmin, async (req: Request, res: Response, next: NextFunction) => {
     const eventId = req.params.eventId as string;
     const { seatNumbers, price, section } = req.body;
     if (!seatNumbers.length || !price || !section) {
         return res.status(400).json({
-            message: "Section, price ,seatNumber are required"
+            message: "Section, price ,seatNumber are requjired"
         });
     }
     try {
         const result = await createSeats(eventId, seatNumbers, price, section);
+        logger.info({
+            eventId: eventId,
+            seatNumbers: seatNumbers
+        }, "Seat Created Successfully");
         return res.status(200).json({
             message: "Seats created",
             data: result
         });
     } catch (err: any) {
-        console.error("Cannot fetch the events:", err.message);
-        return res.status(500).json({
-            message: "Internal server error"
-        });
+        next(err);
     }
 });
 
@@ -88,7 +94,7 @@ router.get('/:eventId/seats', async (req: Request, res: Response) => {
             seats
         });
     } catch (err: any) {
-        console.error("Cannot fetch the events:", err.message);
+        console.error("Cannot fetch the seats:", err.message);
         return res.status(500).json({
             message: "Internal server error"
         });
@@ -104,7 +110,7 @@ router.get('/available/:eventId/seats', async (req: Request, res: Response) => {
             seats
         });
     } catch (err: any) {
-        console.error("Cannot fetch the events:", err.message);
+        console.error("Cannot fetch tha available setas:", err.message);
         return res.status(500).json({
             message: "Internal server error"
         });

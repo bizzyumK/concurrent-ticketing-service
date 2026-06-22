@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 import dotenv from 'dotenv';
 dotenv.config();
 import { prisma } from "../lib/prisma";
+import { logger } from "../lib/logger";
 
 //wokers are consumer
 //so what happen is:
@@ -9,7 +10,10 @@ import { prisma } from "../lib/prisma";
 const worker = new Worker(
     "reservation-expiry",
     async (job) => {
-        console.log("Processing job:", job.id);
+        logger.info({
+            jobId: job.id
+        }, "Processing Job"
+        );
 
         const { reservationId } = job.data;
 
@@ -18,7 +22,7 @@ const worker = new Worker(
         });
 
         if (!reservation) {
-            console.log("Reservation not found");
+            logger.info("Reservation not found");
             return;
         }
 
@@ -28,7 +32,9 @@ const worker = new Worker(
                 data: { status: "EXPIRED" }
             });
 
-            console.log("Expired", reservationId);
+            logger.warn({
+                reservationId
+            }, "Reservation Expired");
         }
     },
     {
@@ -41,11 +47,16 @@ const worker = new Worker(
 );
 
 worker.on("completed", job => {
-    console.log("Completed:", job.id);
+    logger.info({
+        jobId: job.id
+    }, "Job Completed");
 });
 
 worker.on("failed", (job, err) => {
-    console.log("Failed:", job?.id, err);
+    logger.error({
+        jobId: job?.id,
+        err
+    }, "Job Failed");
 });
 
-console.log("Worker is running...");
+logger.info("Worker is running...");

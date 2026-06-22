@@ -209,6 +209,7 @@ export async function reserveSeats(eventId: string, seatNumbers: string[], userI
         },
         {
             delay: 5 * 60 * 1000//5min delay
+            // delay: 10 * 1000//10sec for testing
         }
     );
     console.log("Job added:", job.id);
