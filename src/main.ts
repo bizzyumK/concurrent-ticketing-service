@@ -21,7 +21,7 @@ app.use(
             req(req) {
                 return { method: req.method, url: req.url };
             },
-            res(res) {
+            res(res)    {
                 return { statusCode: res.statusCode };
             }
         },
